@@ -1,4 +1,4 @@
-# Machine Learning Pipeline ( This is not the real documentation )
+# Machine Learning Pipeline
 
 Install all the required dependencies using
 
@@ -165,3 +165,10 @@ POST /v1/similarhashtagslists
 
 obtain list of hashtags similar to the given hashtag when either the positive or negative list of hashtags or both are provided
 
+#Limitations
+Celery is still the best non-blocking library for periodic cron-like job in Python land.
+Celery library does not work nicely with multiprocessing with scikit-learn depends on it. See ( https://github.com/celery/celery/issues/3340 ). However, I tricked it to fork demons by calling a python script from a terminal within the python code. This must force the process to fork and hence allow multiprocessing to work for the scikit learn and other machine learning libraries.
+
+
+#Security issues
+The pickling of object from an untrusted source such as Twitter feeds is very dangerous. However, in content.py we are pickling a json representation of the tweets in order to feed to json. I tried to load and encode json without success. Kindly take note of this known issues as an attacker may write shell commands as tweets and once our system reads it. There can be issues.
