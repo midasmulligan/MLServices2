@@ -1,0 +1,16 @@
+
+sudo -u postgres psql 
+
+CREATE USER test WITH PASSWORD 'test';
+CREATE DATABASE newsdb;
+
+
+SQLALCHEMY_DATABASE_URI = "postgresql://test:test@localhost/newsdb"
+
+
+postgres-# \l      #show databases
+postgres=# \c testdb; #choose database
+
+postgres=# \dt  #show tables
+
+postgres=# \d+ tablename #describe table
