@@ -114,5 +114,6 @@ class Pipeline ():
 
 if __name__ == "__main__":  
     mlPipe = Pipeline ()
+    mlPipe.setAggregation ( state )
 
 

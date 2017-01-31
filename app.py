@@ -201,6 +201,9 @@ def event_messages(key):
                 key = getCurrentKey ( )
 
                 token =  userObj.generate_auth_token(one_hour)
+
+                #start the tweet stream
+                twtStreamObj.runEveryStream( )
  
             #while waiting send a fake message to keep channels open
             yield "waiting \n"
