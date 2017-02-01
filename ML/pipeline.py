@@ -18,6 +18,7 @@ class AGGREGATION:
 class Pipeline ():
     'Common base for machine learning pipeline'
     __predFutureObj = None
+    __triggerObj = None
 
     term = ""
 
@@ -59,7 +60,7 @@ class Pipeline ():
 
 
 
-    def getContent (self, start, end, interval = 1):
+    def getContent (self, start, end, interval = 1, sentiment = None):
         '''
             label the text with spam, topic and sentiment information
         '''
@@ -71,8 +72,13 @@ class Pipeline ():
         dataDict = None
 
         #get df from database
+        df = None
 
-        df = ds.getDF( self.term, start, end )
+        if sentiment:
+            df = ds.getDF( self.term, start, end, sentiment )
+        else:
+            df = ds.getDF( self.term, start, end )
+
 
         self.setData ( df )
 
@@ -100,12 +106,28 @@ class Pipeline ():
 
         futureSpikeTimes = self.simulatedPredict (  )
 
-        curr = { 
-            "topic": self.term, 
-            "trend": len(outputDict) > 3,
-            "summary": outputDict, 
-            "future trending spike times": futureSpikeTimes
-        }
+
+        curr = { }   
+
+        sentimentDict = {'pos': 'positive', 'neg': 'negative', 'neu': 'neutral'}
+
+        if sentiment:
+            curr = { 
+                "term": self.term, 
+                "sentiment": sentimentDict[sentiment],
+                "trend": len(outputDict) > 3,
+                "summary": outputDict, 
+                "future trending spike times": futureSpikeTimes
+            }
+
+        else:
+            curr = { 
+                "term": self.term, 
+                "trend": len(outputDict) > 3,
+                "summary": outputDict, 
+                "future trending spike times": futureSpikeTimes
+            }
+
         output.append ( curr )
 
 

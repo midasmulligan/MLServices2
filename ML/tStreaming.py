@@ -11,6 +11,11 @@ from datastore import DataStore
 
 from redis import StrictRedis
 
+
+import random
+
+
+
 redis = StrictRedis(host='localhost', port=6379, db=0)
 
 
@@ -56,7 +61,11 @@ class StdOutListener(StreamListener):
                 timestamp = round ( tweetTimestamp_ms / 1000 )
 
                 #add element to table
-                self.ds.addRowToTable( self.term, tweetID, tweetText, timestamp )
+                #randomly create sentiments
+                sentimentList = ['pos', 'neg', 'neu']
+                sentiment = random.choice(sentimentList)
+
+                self.ds.addRowToTable( self.term, tweetID, tweetText, timestamp, sentiment )
 
             except:
                 pass
@@ -143,6 +152,12 @@ class TweetStream:
         listOfTerms = self.getlist ( )
 
         for term in listOfTerms:
+ 
+            #if table does not exist
+            if not self.ds.table_exists( term):
+                #create table
+                self.ds.createTable( term )
+
 
             l = StdOutListener( term, time_interval=interval )
             auth = OAuthHandler(consumer_key, consumer_secret)
@@ -154,20 +169,39 @@ class TweetStream:
             self.stream[ term ].filter(track=[ term ], languages=['en'], async=True)
 
 
-    def stopStream(self, term):
-        self.stream[ term ].disconnect() #disconnect the stream and stop streaming
-        del self.stream[ term ]
-        print "Stop the stream\n"
+    def stopandRemoveStream(self, term):
+        listOfTerms = self.getlist ( )
 
-        #remove table
-        self.ds.removeTable( term )
+        if term in self.stream :
+            self.stream[ term ].disconnect() #disconnect the stream and stop streaming
+            del self.stream[ term ]
+            print "Stop the stream\n"
+
+            #remove table 
+            self.ds.removeTable( term )
+
+        #remove from redis
+        if term in listOfTerms :
+            from anomaly import trigger as trig
+            tAggObj = trig.TriggerAlerts( )
+            tAggObj.removeTrigger ( term)
+        
+        
+
+    def stopEveryStream(self):
+        listOfTerms = self.getlist ( )
+
+        for term in listOfTerms:
+            self.stream[ term ].disconnect() #disconnect the stream and stop streaming
+
+
 
 
 
 if __name__ == '__main__':
 
     twtStreamObj = TweetStream()
-    twtStreamObj.runEveryStream( )
-    twtStreamObj.stopStream( "trump")
+    #twtStreamObj.runEveryStream( )
+    twtStreamObj.stopandRemoveStream( "trump")
 
 

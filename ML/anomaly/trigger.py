@@ -9,6 +9,7 @@ class TriggerAlerts:
     def __init__ ( self, term=None ):
 
         if term:
+            term = term.lower()
             self.pbObj = probabilisticEWMA(term )
         else:
             self.pbObj = probabilisticEWMA( )
@@ -84,6 +85,7 @@ class TriggerAlerts:
         '''
             remove triggers not in use
         '''
+        term = term.lower()
         return self.pbObj.removeTermToList (term)
 
 
@@ -126,7 +128,7 @@ if __name__ == "__main__":
     tAggObj = TriggerAlerts( )
     print tAggObj.getEveryTriggers (  )
     tAggObj.removeTrigger ("kenneth")
-    #tAggObj.deleteEveryTriggers (  )
+    tAggObj.deleteEveryTriggers (  )
     print tAggObj.getEveryTriggers (  )
 
 

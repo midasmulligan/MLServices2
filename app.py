@@ -9,7 +9,7 @@ import json
 #import redis
 from redis import StrictRedis
 from flask_restful import reqparse
-from helper import getCurrentKey, getPassword
+from helper import timestampinUTC, getPassword, convertDateStringToUTCtimestamp 
 import urllib
 from ML import pipeline as pipe
 
@@ -30,7 +30,6 @@ from passlib.apps import custom_app_context as pwd_context
 from itsdangerous import (TimedJSONWebSignatureSerializer
                           as Serializer, BadSignature, SignatureExpired)
 
-import requests
 
  
 dir_path = os.path.dirname(os.path.realpath(__file__)) + "/"
@@ -38,8 +37,10 @@ dir_path = os.path.dirname(os.path.realpath(__file__)) + "/"
 
 gevent.monkey.patch_all()
 
-CDELAY = 30 #1 minutes
-MINUTE = 60 #1 minutes
+CDELAY = 30  #30 seconds -> 1 minute
+MINUTE = 120 #1 hours
+HOUR = 600   #5 hours
+DAY = 5760   #2 days
 
 
 app = Flask(__name__)
@@ -61,9 +62,6 @@ db = SQLAlchemy(app)
 auth = HTTPBasicAuth()
 
 
-mlPipe = pipe.Pipeline () #create the pipeline object once
-
-
 #start the tweet stream
 
 twtStreamObj = tstream.TweetStream()
@@ -71,6 +69,14 @@ twtStreamObj.runEveryStream( )
 
 
 version = "/v1"
+
+
+
+class AGGREGATION:
+    MINUTE = 1
+    HOUR = 2
+    DAY = 3
+
 
 
 class RateLimit(object):
@@ -181,10 +187,13 @@ def new_user():
     return ( jsonify({'username': user.username}) )
 
 
+###############################################################
+###################   Beginning of stream   ###################
+###############################################################
 
-def event_messages(key):
+def alert_messages(key, term, aggregation="1M", sentiment=None ):
     '''
-        This provided the tweet that has been labeled with topic, sentiment, and spam metadata
+        Provide streaming of processed tweets
     '''
     count = 0
     one_hour = 3600
@@ -192,18 +201,100 @@ def event_messages(key):
 
     token =  userObj.generate_auth_token(one_hour)
 
+    aggreg = aggregation[-1]
+    interval = int (aggregation[:-1])
+
+    dataAgg = {"M": AGGREGATION.MINUTE,"H": AGGREGATION.HOUR, "D": AGGREGATION.DAY}
+
     try:
         while User.verify_auth_token(token): #verify the user again
+        
+            if (count % MINUTE) == 0 and aggreg=="M":
+                #minutes in aggregation
 
-            if (count % MINUTE) == 0:
-                yield "current data\n"
-                #yield str (unpacked_object) + "\n"
-                key = getCurrentKey ( )
+                endTimeStamp = int( timestampinUTC() / one_hour ) * one_hour
+                startTimeStamp = endTimeStamp - one_hour
+
+                mlPipe = pipe.Pipeline (term)
+
+                mlPipe.setAggregation ( dataAgg[aggreg] )
+            
+                data = ""
+            
+                if sentiment:
+                    data = json.dumps( mlPipe.getContent ( startTimeStamp, endTimeStamp, interval, sentiment ), ensure_ascii=False )
+                else:
+                    data = json.dumps( mlPipe.getContent ( startTimeStamp, endTimeStamp, interval ), ensure_ascii=False )
+
+
+                yield str(data)+"\n"
 
                 token =  userObj.generate_auth_token(one_hour)
 
-                #start the tweet stream
+                #stop every tweet stream
+                twtStreamObj.stopEveryStream( )
+
+                #restart every tweet stream
                 twtStreamObj.runEveryStream( )
+
+
+            elif (count % HOUR) == 0 and aggreg=="H":
+                #hours in aggregation
+                nHrs = 5
+                endTimeStamp = int( timestampinUTC() / (nHrs * one_hour) ) * nHrs * one_hour
+
+                startTimeStamp = endTimeStamp - (nHrs * one_hour)
+
+                mlPipe = pipe.Pipeline (term)
+
+                mlPipe.setAggregation ( dataAgg[aggreg]  )
+
+                data = ""
+
+                if sentiment:
+                    data = json.dumps( mlPipe.getContent ( startTimeStamp, endTimeStamp, interval, sentiment ), ensure_ascii=False )
+                else:
+                    data = json.dumps( mlPipe.getContent ( startTimeStamp, endTimeStamp, interval ), ensure_ascii=False )
+
+                yield str(data)+"\n"
+
+                token =  userObj.generate_auth_token(one_hour)
+
+                #stop every tweet stream
+                twtStreamObj.stopEveryStream( )
+
+                #restart every tweet stream
+                twtStreamObj.runEveryStream( )
+
+            elif (count % DAY) == 0 and aggreg=="D":
+                #days in aggregation
+
+                nHrs = 48
+                endTimeStamp = int( timestampinUTC() / (nHrs * one_hour) ) * nHrs * one_hour
+
+                startTimeStamp = endTimeStamp - (nHrs * one_hour)
+
+                mlPipe = pipe.Pipeline (term)
+
+                mlPipe.setAggregation ( dataAgg[aggreg]  )
+
+                data = ""
+
+                if sentiment:
+                    data = json.dumps( mlPipe.getContent ( startTimeStamp, endTimeStamp, interval, sentiment ), ensure_ascii=False )
+                else:
+                    data = json.dumps( mlPipe.getContent ( startTimeStamp, endTimeStamp, interval ), ensure_ascii=False )
+
+                yield str(data)+"\n"
+
+                token =  userObj.generate_auth_token(one_hour)
+
+                #stop every tweet stream
+                twtStreamObj.stopEveryStream( )
+
+                #restart every tweet stream
+                twtStreamObj.runEveryStream( )
+ 
  
             #while waiting send a fake message to keep channels open
             yield "waiting \n"
@@ -214,10 +305,11 @@ def event_messages(key):
         pass
 
 
-@app.route(version + '/messages')
+@app.route(version + '/alerts/<term>')
 @auth.login_required
-def messages():
-    #session.clear()
+def messages(term):
+
+    #get the user ID
     userObj = g.user
     userID = userObj.id
 
@@ -229,9 +321,112 @@ def messages():
 
     redis.expire (key, expireTime) 
 
-    return Response( event_messages(key), mimetype='text/event-stream' )
+    return Response( alert_messages(key, term), mimetype='text/event-stream' )
+
+
+@app.route(version + '/alerts/<term>/<aggregation>')
+@auth.login_required
+def messages_view(term, aggregation):
+    userObj = g.user
+    userID = userObj.id
+
+    pickled_object = pickle.dumps(userObj )
+    key = 'user_'+  str(userID)
+    redis.set(key, pickled_object)
+
+    expireTime = 24 * 3600 * 365 # 1 year
+
+    redis.expire (key, expireTime) 
+
+    return Response( alert_messages(key, term, aggregation), mimetype='text/event-stream' )
+
+###############################################################
+###################     ending of stream    ###################
+###############################################################
+
+
+###############################################################
+###################   Beginning of batch   ###################
+###############################################################
+
+
+@app.route(version + '/alerts', methods=['POST'])
+@ratelimit(limit=5000, per=60 * 60)
+@auth.login_required
+def get_alerts():
+    '''
+        get alerts based on start, end, term and sentiment
+    '''
+    start = request.json.get('start')
+    end = request.json.get('end')
+    term = request.json.get('term')
+    sentiment = request.json.get('sentiment')
+    aggregation = request.json.get('aggregation')
+
+    startTimestamp , endTimestamp = 0, 0
+
+    if end:
+        endTimestamp = convertDateStringToUTCtimestamp (end)
+    if end is None:
+        endTimestamp = timestampinUTC() # if not available use the current utc unix timestamp
+
+    if start: #must be available
+        startTimestamp = convertDateStringToUTCtimestamp (start)
+
+    if start is None or term is None:
+        abort(400)    # missing arguments
+
+    dataAgg = {"M": AGGREGATION.MINUTE, "H": AGGREGATION.HOUR, "D": AGGREGATION.DAY}
+
+    aggreg = aggregation[-1]
+    interval = int (aggregation[:-1])
+
+
+    mlPipe = pipe.Pipeline (term)
+
+    mlPipe.setAggregation ( dataAgg[aggreg]  )
+
+    data = ""
+
+    if sentiment:
+        data = json.dumps( mlPipe.getContent ( startTimeStamp, endTimeStamp, interval, sentiment ), ensure_ascii=False )
+    else:
+        data = json.dumps( mlPipe.getContent ( startTimeStamp, endTimeStamp, interval ), ensure_ascii=False )
+
+    return json.dumps( str(data), ensure_ascii=False )
+
+
+@app.route( version + '/listing')
+@auth.login_required
+def getlist( ):
+    '''
+        list of alerts
+    '''
+    return json.dumps( twtStreamObj.getlist ( ), ensure_ascii=False )
+
+
+
+@app.route(version + '/delete/alert', methods=['POST'])
+@ratelimit(limit=5000, per=60 * 60)
+@auth.login_required
+def remove_alerts():
+    '''
+        remove an alert
+    '''
+    term = request.json.get('term')
+    if term is None:
+        abort(400)    # missing arguments
+    twtStreamObj.stopandRemoveStream( term )
+    return json.dumps( twtStreamObj.getlist ( ), ensure_ascii=False )
+
+
+###############################################################
+###################     ending of batch    ###################
+###############################################################
 
 """
+curl -i -X POST -H "Content-Type: application/json" -d '{"username":"miguel","password":"python"}' http://127.0.0.1:5000/api/users
+
 curl -i -X POST -H "Content-Type: application/json" -d '{"username":"miguel","password":"python"}' http://127.0.0.1:8001/v1/api/users
 
 

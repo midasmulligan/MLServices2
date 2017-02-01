@@ -39,7 +39,9 @@ class DataStore ():
             create new table
         '''
 
-        query = "CREATE TABLE IF NOT EXISTS "+ term + " ( tweetid bigint NOT NULL PRIMARY KEY, text varchar(500) NOT NULL, timestamp bigint NOT NULL );"
+        #query = "CREATE TYPE sentimentValue AS ENUM ('pos', 'neg', 'neu'); CREATE TABLE IF NOT EXISTS "+ term + " ( tweetid bigint NOT NULL PRIMARY KEY, text varchar(500) NOT NULL, timestamp bigint NOT NULL, sentiment sentimentValue  );"
+
+        query = " CREATE TABLE IF NOT EXISTS "+ term + " ( tweetid bigint NOT NULL, text varchar(500) NOT NULL, timestamp bigint NOT NULL, sentiment varchar(3)  );"
 
         self.cur.execute(query)
 
@@ -53,7 +55,7 @@ class DataStore ():
         '''
             remove new table
         '''
-        query = "DROP TABLE "+ term + ";"
+        query = " DROP TABLE "+ term + ";"
         self.cur.execute(query)
 
         # Make the changes to the database persistent
@@ -63,11 +65,15 @@ class DataStore ():
 
 
 
-    def addRowToTable( self, term, tweetid, text, timestamp ):
+    def addRowToTable( self, term, tweetid, text, timestamp, sentiment=None ):
         '''
             add row to table
         '''
-        self.cur.execute("INSERT INTO "+term+" (tweetid, text, timestamp) VALUES (%s,%s,%s)",  ( tweetid, text, timestamp) )
+        if sentiment is None:
+            self.cur.execute("INSERT INTO "+term+" (tweetid, text, timestamp) VALUES (%s,%s,%s)",  ( tweetid, text, timestamp) )
+
+        else:
+            self.cur.execute("INSERT INTO "+term+" (tweetid, text, timestamp, sentiment) VALUES (%s,%s,%s,%s)",  ( tweetid, text, timestamp, sentiment) )
 
         #print "New row added in the Table :" + term 
 
@@ -87,14 +93,32 @@ class DataStore ():
         return output
 
 
-    def getDF( self, term, start_timestamp, end_timestamp ):
+    def getDF( self, term, start_timestamp, end_timestamp, sentiment = None ):
         '''
             get dataframe
         '''
-        query = "select text, timestamp from "+ term + " where timestamp between " + str(start_timestamp) + " and " + str(end_timestamp)
+        query = ""
+        if sentiment is None:
+            query = "select text, timestamp from "+ term + " where timestamp between " + str(start_timestamp) + " and " + str(end_timestamp)
+
+        else:
+            query = "select text, timestamp from "+ term + " where sentiment=" + str(sentiment)+" AND timestamp between " + str(start_timestamp) + " and " + str(end_timestamp)
 
         df = read_sql(query, con=self.conn) 
         return df
+
+
+    def table_exists( self, table_str ):
+        exists = False
+        try:
+            query = "select exists(select relname from pg_class where relname='" + table_str + "')"
+            self.cur.execute(query)
+            exists = self.cur.fetchone()[0]
+            #self.cur.close()
+        except psycopg2.Error as e:
+            print e
+        return exists
+
 
 
     def __del__(self):
@@ -105,19 +129,27 @@ class DataStore ():
 
 if __name__ == "__main__":
     dsObj = DataStore ()
+
+
     #term = "kenneth"
     term = "james"
     dsObj.removeTable( term )
+    
+    
     dsObj.createTable( term )
 
-    dsObj.addRowToTable( term, 177384834569, "Please am coming home", 45332228 )
-    dsObj.addRowToTable( term, 177384838297, "Please am seeing him", 45332229916 )
+
+    dsObj.addRowToTable( term, 177384834569, "Please am coming home", 45332228, 'pos' )
+    dsObj.addRowToTable( term, 177384838297, "Please am seeing him", 45332229916, 'neg' )
     print dsObj.getEveryRow( term )
     print "======================================="
     print "======================================="
     print "=======================================\n"
-    print dsObj.getDF(  term )
+    print dsObj.getDF(  term, 1000, 100000000 )
 
 
+    print dsObj.table_exists( "james")
+
+    print dsObj.table_exists( "kenneth")
 
 

@@ -1,167 +1,223 @@
-# Machine Learning Pipeline ( This is not the real documentation )
 
-Install all the required dependencies using
-
-Install redis
-$ sudo apt-get install redis-server
-
-Start the redis service
-
-$ pip install -U -r requirements.txt
-
-You can remove all the compiled files .pyc, stale files and stored object models. This is needed for clean up before pushing to github.
-
-$ python clean.py
-
-The MLService folder contains the periodic task for getting the data from the database and performing machine learning processing and feeding the output of the pipeline to redis.
-
-The model is also trained in this file. check for initialization.py and content.py respectively.
-
-The periodic task is logged in celery.logs and the entire application is saved in data.logs
- 
-
-The machine learning operation are contained in
-    
-    /MLService
-        /ML
-
-# ML
-
-This contains the following
-        Sentiment classifier
-            labels
-                4 for neutral sentiment, 
-                2 for positive sentiment, 
-                0 for negative sentiment
-        Spam classifier
-            labels
-                ham for good tweet
-                spam for bad tweet
-        Summarizer
-        Topic detection
-        Tweet Similarity Detector
-
-The service is currently a json object that is streamed at interval. Once the database connection is ready, we can query the database using the interval on the timestamp to get slice of data which will be preprocessed with the machine learning modules and labeled appropriately for consumptions in the frontend.
-
-To start the web service inside the MLService folder
-    
-$ python app.py
+# API DOCUMENTATION
 
 
-Open up a terminal and use curl
-    
-$ curl -i http://127.0.0.1:8001/v1/messages
+The RESTful API is version 1.
 
-You will see the json objects in a stream.
+Aggregation takes the form of a number with either of {M, H, D}
 
-Consume the data in a frontend using techniques such as desribed in ( https://stephennewey.com/realtime-websites-with-flask/ ).
+| Symbols | Description |
+| --- | --- |
+| M | minutes |
+| H | hours |
+| D | days |
 
-# Datasets
+This is how it is used "1M" (1 minute interval time aggregation), "2M" (2 minute interval time aggregation), "1H" (1 hour interval time aggregation), "2H" (2 hour interval time aggregation), "1D" (1 day interval time aggregation), "2D" (2 days interval time aggregation). This is related to the frequency of the time series.
 
-The sentiment classification data is available in ML/sentiment/twitter_data. The current data is a dummy data. However, the real data can be obtained from ( https://www.dropbox.com/sh/s0ctb2cjpi9rj7a/AADAF7rp_0whlTCCtKvv0JkRa?dl=0 ).
+
+Sentiment can take any of the following words which is either "pos", "neg", "neu".
+
+| Sentiment | Description |
+| --- | --- |
+| "pos" | positive |
+| "neg" | negative |
+| "neu" | neutral |
 
 
 
+# Full Description of API with use cases
+
+### Create a new user
 
 
-# API for ML and MLService
+Parameter: username (string), password (string)
 
-This can be found in the root directory using the file.
-The server application can be found in app.py.
+Method: /v1/api/users
 
-#File Structures
+Usage:
+$ curl -i -X POST -H "Content-Type: application/json" -d '{"username":"miguel","password":"python"}' http://127.0.0.1:8001/v1/api/users
 
-    /MLServices
-        app.py
-        helper.py
-        requirements.txt
-        clean.py
-        initialization.py
-        Procfile
-        content.py
-        __init__.py
-        README.md
+Output:
+{
+  "username": "miguel"
+}
 
-        /scraper
-            scraper.py
 
-        /test
-            test.py
+## Streaming Mode
 
-        /log
-            celery.logs
-            data.logs
 
-        /ML
-            /ner
-                __init__.py   
-                ner.py 
-                setup.sh 
-                twokenize.py
+### Create an alert using only term
 
-            /sentiment
-                __init__.py
-                /models        
-                /twitter_data
-                sentiment.py  
 
-            /spam
-                __init__.py
-                /data  
-                /models  
-                spam.py 
+Default aggregation is 1 minutes
 
-            /summarizer
-                __init__.py  
-                summarizer.py  
+Parameters: term (string)
 
-            /topic
-                __init__.py
-                /data
-                /models
-                llda.pyc  
-                extra.py       
-                llda.py       
-                topic.py  
-                twokenize.py
+method: /v1/alerts/<term>
 
-            /tweets
-                __init__.py
-                /models 
-                tweetData.py  
-                tweets.py      
-                twokenize.py
+Usage:
+```
+$ curl -u miguel:python -i -X GET http://127.0.0.1:8001/v1/alerts/trump
+```
 
-            pipeline.py
+Where the username name is miguel and password is python. The alert is trump which is every data related to identifying the anomalies in the data stream.
 
-#Description of the output objects and json object from the RESTful service
+Output:
+
+{ 
+    "term": trump, 
+    "trend": True | False,
+    "summary": {time : summarized text }, 
+    "future trending spike times": []
+}
+
+The summary is the spikes and a summarization of the tweets at the spikes.
+
+### Create an alert using term and aggregation
+
+Parameters: term (string), aggregation (string)
+
+method: /v1/alerts/<term>/<aggregation>
+
+Usage:
+```
+$ curl -u miguel:python -i -X GET http://127.0.0.1:8001/v1/alerts/trump/1H
+```
+
+Where the username name is miguel and password is python. The alert is trump which is every data related to identifying the anomalies in the data stream by setting the time aggregation (1 hour time aggregation).
+
+Output:
+{ 
+    "term": trump, 
+    "trend": True | False,
+    "summary": {time : summarized text }, 
+    "future trending spike times": []
+}
+
+The summary is the spikes and a summarization of the tweets at the spikes.
+
+## Batch Mode
+
+### Create an alert using term, time extent (start and end date strings) and aggregation
+
+
+The start and end string takes the form of "day/month/year"
+
+Parameters: term (string), start (string), end (string), aggregation (string)
+
+method: /v1/alerts
+
+Usage:
+
+start parameter must be provided.
+
+Example 1: provide both start and end values
+
+```
+$ curl -u miguel:python -i -X POST -H "Content-Type: application/json" -d '{"start":"01/12/2011", "end":"01/12/2015", "term":"clinton", "aggregation": "5H", "sentiment": "pos" }' http://127.0.0.1:8001/v1/alerts
+```
+
+Where the username name is miguel and password is python. The alert is clinton with positive sentiment that is related to identifying the anomalies in the data stream by setting the 5 hour time aggregation between 01/12/2011 and 01/12/2015.
+
+Example 2: provide only start values as the current date is the current timestamp
+
+```
+$ curl -u miguel:python -i -X POST -H "Content-Type: application/json" -d '{"start":"01/12/2011", "term":"clinton", "aggregation": "5H", "sentiment": "neu"}' http://127.0.0.1:8001/v1/alerts
+```
+
+Example 3: provide only start values as the current date is the current timestamp
+
+```
+$ curl -u miguel:python -i -X POST -H "Content-Type: application/json" -d '{"start":"01/12/2011", "term":"clinton", "aggregation": "5H"}' http://127.0.0.1:8001/v1/alerts
+```
+
+Where the username name is miguel and password is python. The alert is clinton with neutral sentiment that is related to identifying the anomalies in the data stream by setting the 5 hour time aggregation between 01/12/2011 and current date.
+
+Output:
+
+
+Output:
+{ 
+    "term": clinton, 
+    "sentiment": positive | negative | neutral,
+    "trend": True | False,
+    "summary": {time : summarized text }, 
+    "future trending spike times": []
+}
+
+OR
+
+if sentiment is missing.
+
+{ 
+    "term": clinton, 
+    "trend": True | False,
+    "summary": {time : summarized text }, 
+    "future trending spike times": []
+}
+
+The summary is the spikes and a summarization of the tweets at the spikes.
+
+
+
+### Obtain a list of alerts
+
+Parameters: N/A
+
+method: /v1/listing
+
+Usage:
+
+```
+$ curl -u miguel:python -i -X GET http://127.0.0.1:8001/v1/listing
+```
+
+Output: list of triggers term in the system
+
+
+### Delete alert
+
+
+Parameters: N/A
+
+method: /v1/delete/alert
+
+Usage:
+
+```
+$ curl -u miguel:python -i -X POST -H "Content-Type: application/json" -d '{"term":"clinton"}' http://127.0.0.1:8001/v1/delete/alert
+
+```
+
+Output: list of alerts in the system
+
+
+
+# Summary of API 
 
 Version: v1
 
-GET /v1/messages
+POST /v1/api/users
+Create a new users.
 
-[
-{ "text": tweet, "spam": spam, "topic": [], "sentiment": sentiment, "location": [],  "person": [], "organization": [] }
-]
+GET /v1/alerts/<term>
+Obtain data stream.
+
+GET /v1/alerts/<term>/<aggregation>
+Obtain data stream.
+
+POST /v1/alerts
+Obtain a batch of data stream.
+
+GET /v1/listing
+Obtain a list of triggers in the system.
+
+POST /v1/delete/alert
+Delete the trigger.
 
 
-GET /v1/similarwords
+# Error messages
+The default errorcode is 400. This is usually thrown when there is missing arguments.
 
-obtain list of words similar to the given word
-
-POST /v1/similarlists
-
-obtain list of words similar to the given words when either the positive or negative list of words or both are provided
-
-GET /v1/similarsentences
-
-Obtain list of tweets similar to the provided tweet.
-
-GET /similarhashtags
-
-obtain list of hashtags similar to the given hashtag
-
-POST /v1/similarhashtagslists
-
-obtain list of hashtags similar to the given hashtag when either the positive or negative list of hashtags or both are provided
+Other HTTP code 401 is thrown for bad authentication.
 

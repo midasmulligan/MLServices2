@@ -1,6 +1,7 @@
 from __future__ import division
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import os, random, string
+import calendar
 
 
 def totimestamp(dt, epoch=datetime(1970,1,1)):
@@ -9,12 +10,19 @@ def totimestamp(dt, epoch=datetime(1970,1,1)):
     return (td.microseconds + (td.seconds + td.days * 86400) * 10**6) / 10**6 
 
 
-
 def timestampinUTC ():
     #this returns the time in UTC
     now = datetime.utcnow()
     return int (totimestamp(now))
 
+
+def convertDateStringToUTCtimestamp (date_string):
+    """
+        date_string = "01/12/2011"
+    """
+    date_object = date(*map(int, reversed(date_string.split("/"))))
+    timestamp = calendar.timegm(date_object.timetuple())
+    return timestamp 
 
 
 def getCurrentKey (curUnixTimestamp=timestampinUTC (), aggreg=3600):
