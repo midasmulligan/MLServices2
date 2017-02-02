@@ -221,42 +221,18 @@ Output: list of alerts in the system
 
 # Summary of API 
 
-Version: v1
+## Version: v1
 
 
-POST /v1/api/users
-
-Create a new users.
-
-
-GET /v1/alerts/`<term>`
-
-Obtain data stream.
-
-
-GET /v1/alerts/`<term>/<aggregation>`
-
-Obtain data stream.
-
-
-GET /v1/alerts/`<term>/<aggregation>/<sentiment>`
-
-Obtain data stream.
-
-
-POST /v1/alerts
-
-Obtain a batch of data.
-
-
-GET /v1/listing
-
-Obtain a list of triggers in the system.
-
-
-POST /v1/delete/alert
-
-Delete the trigger.
+| Method        | Description           |
+| ------------- |:-------------:|
+| POST /v1/api/users     | Create a new users.      |
+| GET /v1/alerts/`<term>` | Obtain data stream.     |
+| GET /v1/alerts/`<term>/<aggregation>`     | Obtain data stream.      |
+| GET /v1/alerts/`<term>/<aggregation>/<sentiment>` | Obtain data stream.     |
+| POST /v1/alerts     | Obtain a batch of data.      |
+| GET /v1/listing | Obtain a list of triggers in the system.      |
+| POST /v1/delete/alert      | Delete the trigger.     |
 
 
 # Error messages
