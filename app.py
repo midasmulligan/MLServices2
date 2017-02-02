@@ -63,7 +63,8 @@ auth = HTTPBasicAuth()
 
 
 twtStreamObj = tstream.TweetStream()
-
+#stop the tweet stream
+twtStreamObj.stopEveryStream( )
 #start the tweet stream
 twtStreamObj.runEveryStream( )
 
@@ -208,10 +209,9 @@ def alert_messages(key, term, aggregation="1M", sentiment=None ):
 
     mlPipe = pipe.Pipeline (term)
 
-    #stop every tweet stream
+    #stop the tweet stream
     twtStreamObj.stopEveryStream( )
-
-    #restart every tweet stream
+    #start the tweet stream
     twtStreamObj.runEveryStream( )
 
     try:
@@ -403,9 +403,6 @@ def remove_alerts():
     if term is None:
         abort(400)    # missing arguments
     twtStreamObj.stopandRemoveStream( term )
-
-    #restart every tweet stream
-    twtStreamObj.runEveryStream( )
 
     return json.dumps( twtStreamObj.getlist ( ), ensure_ascii=False )
 

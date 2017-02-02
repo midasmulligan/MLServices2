@@ -9,6 +9,8 @@ from tweepy import OAuthHandler, Stream, API
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from datastore import DataStore
 
+
+
 from redis import StrictRedis
 
 
@@ -38,12 +40,43 @@ class StdOutListener(StreamListener):
         self.start = time.time()
 
         self.ds = DataStore ()
-        self.term = term
+        #self.term = term
 
         #table is created
         if not self.ds.table_exists( term):
             #create table
             self.ds.createTable( term )
+
+
+    def best_find( self, string, text ):
+        if text in string:
+            return True
+        return False
+
+
+    def getlist ( self ):
+        '''
+            list of terms
+        '''
+        key = "listOfTerms"
+        read_list = redis.get(key)
+        mylist = []
+        if read_list:
+            existList = pickle.loads(read_list)
+            mylist.extend ( existList )
+        return mylist
+
+
+    def getlabel( self, string ):
+        listOfTerms = self.getlist ( )
+        string = string.lower( )
+        curString = ""
+        for term in listOfTerms:
+            if self.best_find(  string, term ):
+                curString = term
+
+        return curString
+                
 
 
 
@@ -67,7 +100,9 @@ class StdOutListener(StreamListener):
                 sentimentList = ['pos', 'neg', 'neu']
                 sentiment = random.choice(sentimentList)
 
-                self.ds.addRowToTable( self.term, tweetID, tweetText, timestamp, sentiment )
+                term = self.getlabel( tweetText )
+
+                self.ds.addRowToTable( term, tweetID, tweetText, timestamp, sentiment )
 
             except:
                 pass
@@ -125,10 +160,10 @@ class Singleton(type):
 
 
 class TweetStream:
-    #__metaclass__ = Singleton
+    __metaclass__ = Singleton
     def __init__ ( self ):
-        self.stream = {}
         self.ds = DataStore ()
+        self.stream = None
 
 
 
@@ -169,26 +204,25 @@ class TweetStream:
 
             api = API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
-            self.stream[ term ] = Stream(api.auth, l)
-            self.stream[ term ].filter(track=[ term ], languages=['en'], async=True)
-            #self.stream[ term ].filter(track=[ term ], languages=['en'])
+
+            self.stream = Stream(api.auth, l)
+            self.stream.filter(track=listOfTerms, languages=['en'], async=True)
+            
 
 
 
     def stopandRemoveStream(self, term):
+
+        from anomaly import trigger as trig
+        tAggObj = trig.TriggerAlerts( )
+
         listOfTerms = self.getlist ( )
-
-        if term in self.stream :
-            self.stream[ term ].disconnect() #disconnect the stream and stop streaming
-            del self.stream[ term ]
-            print "Stop the stream\n"
-
 
         #remove from redis
         if term in listOfTerms :
-            from anomaly import trigger as trig
-            tAggObj = trig.TriggerAlerts( )
             tAggObj.removeTrigger ( term )
+            self.stream.disconnect() #disconnect the stream and stop streaming
+            print "Stop the stream\n"
 
 
         #remove table 
@@ -198,9 +232,8 @@ class TweetStream:
 
     def stopEveryStream(self):
         listOfTerms = self.getlist ( )
-
-        for term in listOfTerms:
-            self.stream[ term ].disconnect() #disconnect the stream and stop streaming
+        if self.stream:
+            self.stream.disconnect() #disconnect the stream and stop streaming
 
 
 
@@ -211,6 +244,7 @@ if __name__ == '__main__':
     twtStreamObj = TweetStream()
     #twtStreamObj.runEveryStream( )
     twtStreamObj.stopandRemoveStream( "trump")
+    twtStreamObj.stopandRemoveStream( "clinton")
     print twtStreamObj.getlist (  )
 
 
