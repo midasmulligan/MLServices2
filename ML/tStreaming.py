@@ -33,19 +33,15 @@ consumer_secret = "PqOup9wu87bsmHO877DLSlLVSiH3mk4KC83OJ8AO13cQJPS4lv"
 
 class StdOutListener(StreamListener):
 
-    def __init__(self, term, time_interval=60):
+    def __init__(self,  time_interval=60):
         self.interval = time_interval
         self.siesta = 0
         self.nightnight = 0
         self.start = time.time()
 
         self.ds = DataStore ()
-        #self.term = term
 
-        #table is created
-        if not self.ds.table_exists( term):
-            #create table
-            self.ds.createTable( term )
+
 
 
     def best_find( self, string, text ):
@@ -68,14 +64,15 @@ class StdOutListener(StreamListener):
 
 
     def getlabel( self, string ):
+        output = []
         listOfTerms = self.getlist ( )
         string = string.lower( )
         curString = ""
         for term in listOfTerms:
             if self.best_find(  string, term ):
-                curString = term
+                output.append(term)
 
-        return curString
+        return output
                 
 
 
@@ -100,9 +97,17 @@ class StdOutListener(StreamListener):
                 sentimentList = ['pos', 'neg', 'neu']
                 sentiment = random.choice(sentimentList)
 
-                term = self.getlabel( tweetText )
+                termlist = self.getlabel( tweetText )
 
-                self.ds.addRowToTable( term, tweetID, tweetText, timestamp, sentiment )
+
+                for term in termlist:
+                    #table is created
+                    if not self.ds.table_exists( term):
+                        #create table
+                        self.ds.createTable( term )
+
+                    #add row to table
+                    self.ds.addRowToTable( term, tweetID, tweetText, timestamp, sentiment )
 
             except:
                 pass
@@ -198,15 +203,15 @@ class TweetStream:
                 self.ds.createTable( term )
 
 
-            l = StdOutListener( term, time_interval=interval )
-            auth = OAuthHandler(consumer_key, consumer_secret)
-            auth.set_access_token(access_token, access_token_secret)
+        l = StdOutListener(  time_interval=interval )
+        auth = OAuthHandler(consumer_key, consumer_secret)
+        auth.set_access_token(access_token, access_token_secret)
 
-            api = API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
+        api = API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 
-            self.stream = Stream(api.auth, l)
-            self.stream.filter(track=listOfTerms, languages=['en'], async=True)
+        self.stream = Stream(api.auth, l)
+        self.stream.filter(track=listOfTerms, languages=['en'], async=True)
             
 
 

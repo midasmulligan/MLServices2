@@ -24,6 +24,7 @@ class DataStore ():
         self.cur = self.conn.cursor()
 
 
+
     def create_conn(*args,**kwargs):
         config = kwargs['config']
         try:
@@ -39,9 +40,7 @@ class DataStore ():
             create new table
         '''
 
-        #query = "CREATE TYPE sentimentValue AS ENUM ('pos', 'neg', 'neu'); CREATE TABLE IF NOT EXISTS "+ term + " ( tweetid bigint NOT NULL PRIMARY KEY, text varchar(500) NOT NULL, timestamp bigint NOT NULL, sentiment sentimentValue  );"
-
-        query = " CREATE TABLE IF NOT EXISTS "+ term + " ( tweetid bigint NOT NULL, text varchar(500) NOT NULL, timestamp bigint NOT NULL, sentiment varchar(3)  );"
+        query = " CREATE TABLE IF NOT EXISTS "+ term + " ( id SERIAL, tweetid bigint NOT NULL, text varchar(500) NOT NULL, timestamp bigint NOT NULL, sentiment varchar(3)  );"
 
         self.cur.execute(query)
 
@@ -51,11 +50,11 @@ class DataStore ():
         print "Table :" + term +" is created!!!"
 
 
+
     def removeTable( self, term ):
         '''
             remove new table
         '''
-        #query = " DROP TABLE "+ term + ";"
 
         query ="DROP TABLE IF EXISTS " + term + " CASCADE;"
 
@@ -123,6 +122,29 @@ class DataStore ():
         return exists
 
 
+    def checkIfTableIsInsertingData( self, term ):
+        '''
+            know if table is inserting a stream
+            True: if table is accepting data
+            False: if data is no longer inserted in the table
+        '''
+
+        query = "SELECT id FROM "+ term + " WHERE id=(select max(id) from "+ term + ");"
+        self.cur.execute(query)
+        row = self.cur.fetchone()
+        count = 0
+        numberOfTries = 10
+        while count < numberOfTries:
+            count = count + 1
+            oldValue = row[0]
+            row = self.cur.fetchone()
+            newValue = row[0]
+            if oldValue != newValue:
+                return True
+
+        return False
+
+
 
     def __del__(self):
         # Close communication with the database
@@ -133,7 +155,7 @@ class DataStore ():
 if __name__ == "__main__":
     dsObj = DataStore ()
 
-
+    """
     #term = "kenneth"
     term = "james"
     dsObj.removeTable( term )
@@ -154,5 +176,10 @@ if __name__ == "__main__":
     print dsObj.table_exists( "james")
 
     print dsObj.table_exists( "kenneth")
+    """
+    term = "trump"
+    print dsObj.checkIfTableIsInsertingData( term )
 
+    term = "clinton"
+    print dsObj.checkIfTableIsInsertingData( term )
 
