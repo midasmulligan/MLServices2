@@ -97,7 +97,7 @@ Output:
 The summary is the spikes and a summarization of the tweets at the spikes.
 
 
-### Create an alert using term, aggregation, and sentiment 
+### Create an alert using term and aggregation
 
 Parameters: term (string), aggregation (string), sentiment (string)
 
