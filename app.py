@@ -62,9 +62,9 @@ db = SQLAlchemy(app)
 auth = HTTPBasicAuth()
 
 
-#start the tweet stream
-
 twtStreamObj = tstream.TweetStream()
+
+#start the tweet stream
 twtStreamObj.runEveryStream( )
 
 
@@ -206,6 +206,14 @@ def alert_messages(key, term, aggregation="1M", sentiment=None ):
 
     dataAgg = {"M": AGGREGATION.MINUTE,"H": AGGREGATION.HOUR, "D": AGGREGATION.DAY}
 
+    mlPipe = pipe.Pipeline (term)
+
+    #stop every tweet stream
+    twtStreamObj.stopEveryStream( )
+
+    #restart every tweet stream
+    twtStreamObj.runEveryStream( )
+
     try:
         while User.verify_auth_token(token): #verify the user again
         
@@ -213,9 +221,7 @@ def alert_messages(key, term, aggregation="1M", sentiment=None ):
                 #minutes in aggregation
 
                 endTimeStamp = int( timestampinUTC() / one_hour ) * one_hour
-                startTimeStamp = endTimeStamp - one_hour
-
-                mlPipe = pipe.Pipeline (term)
+                startTimeStamp = endTimeStamp - one_hour               
 
                 mlPipe.setAggregation ( dataAgg[aggreg] )
             
@@ -231,13 +237,6 @@ def alert_messages(key, term, aggregation="1M", sentiment=None ):
 
                 token =  userObj.generate_auth_token(one_hour)
 
-                #stop every tweet stream
-                twtStreamObj.stopEveryStream( )
-
-                #restart every tweet stream
-                twtStreamObj.runEveryStream( )
-
-
             elif (count % HOUR) == 0 and aggreg=="H":
                 #hours in aggregation
                 nHrs = 5
@@ -245,7 +244,6 @@ def alert_messages(key, term, aggregation="1M", sentiment=None ):
 
                 startTimeStamp = endTimeStamp - (nHrs * one_hour)
 
-                mlPipe = pipe.Pipeline (term)
 
                 mlPipe.setAggregation ( dataAgg[aggreg]  )
 
@@ -259,12 +257,6 @@ def alert_messages(key, term, aggregation="1M", sentiment=None ):
                 yield str(data)+"\n"
 
                 token =  userObj.generate_auth_token(one_hour)
-
-                #stop every tweet stream
-                twtStreamObj.stopEveryStream( )
-
-                #restart every tweet stream
-                twtStreamObj.runEveryStream( )
 
             elif (count % DAY) == 0 and aggreg=="D":
                 #days in aggregation
@@ -274,7 +266,6 @@ def alert_messages(key, term, aggregation="1M", sentiment=None ):
 
                 startTimeStamp = endTimeStamp - (nHrs * one_hour)
 
-                mlPipe = pipe.Pipeline (term)
 
                 mlPipe.setAggregation ( dataAgg[aggreg]  )
 
@@ -289,12 +280,6 @@ def alert_messages(key, term, aggregation="1M", sentiment=None ):
 
                 token =  userObj.generate_auth_token(one_hour)
 
-                #stop every tweet stream
-                twtStreamObj.stopEveryStream( )
-
-                #restart every tweet stream
-                twtStreamObj.runEveryStream( )
- 
  
             #while waiting send a fake message to keep channels open
             yield "waiting \n"
@@ -320,6 +305,7 @@ def messages(term):
     expireTime = 24 * 3600 * 365 # 1 year
 
     redis.expire (key, expireTime) 
+
 
     return Response( alert_messages(key, term), mimetype='text/event-stream' )
 

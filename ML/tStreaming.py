@@ -41,7 +41,9 @@ class StdOutListener(StreamListener):
         self.term = term
 
         #table is created
-        self.ds.createTable( term )
+        if not self.ds.table_exists( term):
+            #create table
+            self.ds.createTable( term )
 
 
 
@@ -123,10 +125,11 @@ class Singleton(type):
 
 
 class TweetStream:
-    __metaclass__ = Singleton
+    #__metaclass__ = Singleton
     def __init__ ( self ):
         self.stream = {}
         self.ds = DataStore ()
+
 
 
     def getlist ( self ):
@@ -140,6 +143,7 @@ class TweetStream:
             existList = pickle.loads(read_list)
             mylist.extend ( existList )
         return mylist
+
 
 
     def runEveryStream( self ):
@@ -167,6 +171,8 @@ class TweetStream:
 
             self.stream[ term ] = Stream(api.auth, l)
             self.stream[ term ].filter(track=[ term ], languages=['en'], async=True)
+            #self.stream[ term ].filter(track=[ term ], languages=['en'])
+
 
 
     def stopandRemoveStream(self, term):
@@ -177,15 +183,17 @@ class TweetStream:
             del self.stream[ term ]
             print "Stop the stream\n"
 
-            #remove table 
-            self.ds.removeTable( term )
 
         #remove from redis
         if term in listOfTerms :
             from anomaly import trigger as trig
             tAggObj = trig.TriggerAlerts( )
-            tAggObj.removeTrigger ( term)
-        
+            tAggObj.removeTrigger ( term )
+
+
+        #remove table 
+        if self.ds.table_exists( term ):
+            self.ds.removeTable( term )        
         
 
     def stopEveryStream(self):
@@ -203,5 +211,6 @@ if __name__ == '__main__':
     twtStreamObj = TweetStream()
     #twtStreamObj.runEveryStream( )
     twtStreamObj.stopandRemoveStream( "trump")
+    print twtStreamObj.getlist (  )
 
 

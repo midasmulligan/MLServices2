@@ -1,7 +1,7 @@
 from anomaly import tSeries as ts
 from anomaly import trigger as trig
 from summarizer import summarizer as summ
-
+from datastore import DataStore
 
 import pandas as pd
 import os.path
@@ -28,6 +28,15 @@ class Pipeline ():
         '''
 
         if term:
+            term = term.lower()
+            self.ds = DataStore ()
+
+            #if table does not exist
+            if not self.ds.table_exists( term):
+                #create table
+                self.ds.createTable( term )
+
+
             self.__predFutureObj = ts.PredictedFutureTriggerAlerts( term )
             self.__triggerObj = trig.TriggerAlerts( term )
 
@@ -64,69 +73,73 @@ class Pipeline ():
         '''
             label the text with spam, topic and sentiment information
         '''
-        from datastore import DataStore
-
-        ds = DataStore ()
-
+ 
         output = []
+
+        curr = { } 
+
+
         dataDict = None
 
         #get df from database
         df = None
 
         if sentiment:
-            df = ds.getDF( self.term, start, end, sentiment )
+            df = self.ds.getDF( self.term, start, end, sentiment )
         else:
-            df = ds.getDF( self.term, start, end )
+            df = self.ds.getDF( self.term, start, end )
 
 
-        self.setData ( df )
+        if not df.empty:
+            #ensure the dataframe is not empty
 
-        timeAgg = self.getAggregation (  )
-    
-        if timeAgg == AGGREGATION.MINUTE:
+            self.setData ( df )
 
-            dataDict = self.__triggerObj.useMinutes (interval = interval)
+            timeAgg = self.getAggregation (  )
+        
+            if timeAgg == AGGREGATION.MINUTE:
 
-        elif timeAgg == AGGREGATION.HOUR:
+                dataDict = self.__triggerObj.useMinutes (interval = interval)
 
-            dataDict = self.__triggerObj.useHours (interval = interval)
+            elif timeAgg == AGGREGATION.HOUR:
 
-        else:
+                dataDict = self.__triggerObj.useHours (interval = interval)
 
-            dataDict = self.__triggerObj.useDays (interval = interval)
+            else:
 
-        outputDict = {}
-        for key, textlists in dataDict.iteritems():
-            txtlist = [item for sublist in textlists for item in sublist]
-            totalString = ' '.join( txtlist )
-            summarizedTxt = summ.summarizeTweet(totalString)
-            outputDict.update({key: summarizedTxt })
+                dataDict = self.__triggerObj.useDays (interval = interval)
+
+            outputDict = {}
+            for key, textlists in dataDict.iteritems():
+                txtlist = [item for sublist in textlists for item in sublist]
+                totalString = ' '.join( txtlist )
+                summarizedTxt = summ.summarizeTweet(totalString)
+                outputDict.update({key: summarizedTxt })
 
 
-        futureSpikeTimes = self.simulatedPredict (  )
+            futureSpikeTimes = self.simulatedPredict (  )
 
 
-        curr = { }   
+      
 
-        sentimentDict = {'pos': 'positive', 'neg': 'negative', 'neu': 'neutral'}
+            sentimentDict = {'pos': 'positive', 'neg': 'negative', 'neu': 'neutral'}
 
-        if sentiment:
-            curr = { 
-                "term": self.term, 
-                "sentiment": sentimentDict[sentiment],
-                "trend": len(outputDict) > 3,
-                "summary": outputDict, 
-                "future trending spike times": futureSpikeTimes
-            }
+            if sentiment:
+                curr = { 
+                    "term": self.term, 
+                    "sentiment": sentimentDict[sentiment],
+                    "trend": len(outputDict) > 3,
+                    "summary": outputDict, 
+                    "future trending spike times": futureSpikeTimes
+                }
 
-        else:
-            curr = { 
-                "term": self.term, 
-                "trend": len(outputDict) > 3,
-                "summary": outputDict, 
-                "future trending spike times": futureSpikeTimes
-            }
+            else:
+                curr = { 
+                    "term": self.term, 
+                    "trend": len(outputDict) > 3,
+                    "summary": outputDict, 
+                    "future trending spike times": futureSpikeTimes
+                }
 
         output.append ( curr )
 

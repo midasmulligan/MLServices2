@@ -55,7 +55,10 @@ class DataStore ():
         '''
             remove new table
         '''
-        query = " DROP TABLE "+ term + ";"
+        #query = " DROP TABLE "+ term + ";"
+
+        query ="DROP TABLE IF EXISTS " + term + " CASCADE;"
+
         self.cur.execute(query)
 
         # Make the changes to the database persistent

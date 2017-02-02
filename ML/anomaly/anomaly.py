@@ -37,6 +37,10 @@ class probabilisticEWMA:
             self.addTermToList ( term )
 
 
+            self.s1 = 0
+            self.s2 = 0
+
+
     def setTerm (self, term):
         '''
             add term
