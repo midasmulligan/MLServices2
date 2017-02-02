@@ -96,6 +96,33 @@ Output:
 
 The summary is the spikes and a summarization of the tweets at the spikes.
 
+
+### Create an alert using term and aggregation
+
+Parameters: term (string), aggregation (string), sentiment (string)
+
+method: /v1/alerts/`<term>/<aggregation>/<sentiment>`
+
+Usage:
+```
+$ curl -u miguel:python -i -X GET http://127.0.0.1:8001/v1/alerts/trump/1H/pos
+```
+
+Where the username name is miguel and password is python. The alert is trump which is every data related to identifying the anomalies in the data stream by setting the time aggregation (1 hour time aggregation) with positive sentiments.
+
+Output:
+
+{ 
+    "term": trump, 
+    "sentiment": positive,
+    "trend": True | False,
+    "summary": {time : summarized text }, 
+    "future trending spike times": []
+}
+
+The summary is the spikes and a summarization of the tweets at the spikes.
+
+
 ## Batch Mode
 
 ### Create an alert using term, time extent (start and end date strings) and aggregation
@@ -133,7 +160,6 @@ $ curl -u miguel:python -i -X POST -H "Content-Type: application/json" -d '{"sta
 
 Where the username name is miguel and password is python. The alert is clinton with neutral sentiment that is related to identifying the anomalies in the data stream by setting the 5 hour time aggregation between 01/12/2011 and current date.
 
-Output:
 
 
 Output:
@@ -207,7 +233,7 @@ GET /v1/alerts/`<term>/<aggregation>`
 Obtain data stream.
 
 POST /v1/alerts
-Obtain a batch of data stream.
+Obtain a batch of data.
 
 GET /v1/listing
 Obtain a list of triggers in the system.

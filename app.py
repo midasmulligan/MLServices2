@@ -326,6 +326,23 @@ def messages_view(term, aggregation):
 
     return Response( alert_messages(key, term, aggregation), mimetype='text/event-stream' )
 
+
+@app.route(version + '/alerts/<term>/<aggregation>/<sentiment>')
+@auth.login_required
+def messages_view2(term, aggregation, sentiment):
+    userObj = g.user
+    userID = userObj.id
+
+    pickled_object = pickle.dumps(userObj )
+    key = 'user_'+  str(userID)
+    redis.set(key, pickled_object)
+
+    expireTime = 24 * 3600 * 365 # 1 year
+
+    redis.expire (key, expireTime) 
+
+    return Response( alert_messages(key, term, aggregation, sentiment), mimetype='text/event-stream' )
+
 ###############################################################
 ###################     ending of stream    ###################
 ###############################################################
