@@ -414,6 +414,15 @@ def remove_alerts():
 ###################     ending of batch    ###################
 ###############################################################
 
+"""
+curl -i -X POST -H "Content-Type: application/json" -d '{"username":"miguel","password":"python"}' http://127.0.0.1:5000/api/users
+
+curl -i -X POST -H "Content-Type: application/json" -d '{"username":"miguel","password":"python"}' http://127.0.0.1:8001/v1/api/users
+
+
+curl -u miguel:python -i -X GET http://127.0.0.1:8001/v1/messages
+
+"""
 
 
 if __name__ == '__main__':
