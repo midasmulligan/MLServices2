@@ -18,6 +18,7 @@ class TimeAggregation:
 
     def setdata (self, ndf):
         self.ndf = ndf
+        self.ndf.timestamp = pd.to_datetime(self.ndf.timestamp, unit ='s')
         self.ndf = self.ndf.set_index('timestamp')
 
 
@@ -97,7 +98,7 @@ if __name__ == "__main__":
 
     ndf = df [1:]
 
-    ndf.timestamp = pd.to_datetime(ndf.timestamp, unit ='s')
+    #ndf.timestamp = pd.to_datetime(ndf.timestamp, unit ='s')
 
     #ndf = ndf.set_index('timestamp')
 

@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
     ndf.timestamp = pd.to_datetime(ndf.timestamp, unit ='s')
 
-    ndf = ndf.set_index('timestamp')
+    #ndf = ndf.set_index('timestamp')
 
     tAggObj = TimeAggregation()
     tAggObj.setdata (ndf)
