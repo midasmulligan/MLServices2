@@ -223,22 +223,39 @@ Output: list of alerts in the system
 
 Version: v1
 
+
 POST /v1/api/users
+
 Create a new users.
 
+
 GET /v1/alerts/`<term>`
+
 Obtain data stream.
+
 
 GET /v1/alerts/`<term>/<aggregation>`
+
 Obtain data stream.
 
+
+GET /v1/alerts/`<term>/<aggregation>/<sentiment>`
+
+Obtain data stream.
+
+
 POST /v1/alerts
+
 Obtain a batch of data.
 
+
 GET /v1/listing
+
 Obtain a list of triggers in the system.
 
+
 POST /v1/delete/alert
+
 Delete the trigger.
 
 
@@ -246,4 +263,5 @@ Delete the trigger.
 The default errorcode is 400. This is usually thrown when there is missing arguments.
 
 Other HTTP code 401 is thrown for bad authentication.
+HTTP code 200 for success.
 
