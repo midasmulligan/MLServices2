@@ -221,6 +221,8 @@ class TweetStream:
         #remove from redis
         if term in listOfTerms :
             tAggObj.removeTrigger ( term )
+
+        if self.stream:
             self.stream.disconnect() #disconnect the stream and stop streaming
             print "Stop the stream\n"
 

@@ -53,7 +53,7 @@ Default aggregation is 1 minutes
 
 Parameters: term (string)
 
-method: /v1/alerts/<term>
+method: /v1/alerts/`<term>`
 
 Usage:
 ```
@@ -77,7 +77,7 @@ The summary is the spikes and a summarization of the tweets at the spikes.
 
 Parameters: term (string), aggregation (string)
 
-method: /v1/alerts/<term>/<aggregation>
+method: /v1/alerts/`<term>/<aggregation>`
 
 Usage:
 ```
@@ -200,10 +200,10 @@ Version: v1
 POST /v1/api/users
 Create a new users.
 
-GET /v1/alerts/<term>
+GET /v1/alerts/`<term>`
 Obtain data stream.
 
-GET /v1/alerts/<term>/<aggregation>
+GET /v1/alerts/`<term>/<aggregation>`
 Obtain data stream.
 
 POST /v1/alerts
