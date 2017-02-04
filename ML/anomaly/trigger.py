@@ -113,11 +113,15 @@ if __name__ == "__main__":
     ndf.timestamp = pd.to_datetime(ndf.timestamp, unit ='s')
     ndf = ndf.set_index('timestamp')
 
+
+
     #tAggObj = TriggerAlerts("kenneth")
     tAggObj = TriggerAlerts("trump")
     #training mode
     tAggObj.setData (ndf)
     nobj =  tAggObj.useMinutes( interval = 5)
+    print "Training mode"
+    print nobj
     #testing mode
     tAggObj.setData (ndf)
     nobj =  tAggObj.useMinutes( interval = 5 )
@@ -125,10 +129,13 @@ if __name__ == "__main__":
     print "Testing mode"
     print nobj
 
+    """
     tAggObj = TriggerAlerts( )
     print tAggObj.getEveryTriggers (  )
     tAggObj.removeTrigger ("kenneth")
     tAggObj.deleteEveryTriggers (  )
     print tAggObj.getEveryTriggers (  )
+    """
+
 
 

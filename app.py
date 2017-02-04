@@ -192,7 +192,7 @@ def new_user():
 ###################   Beginning of stream   ###################
 ###############################################################
 
-def alert_messages(key, term, aggregation="1M", sentiment=None ):
+def alert_messages( key, mlPipe, term, aggregation="1M", sentiment=None ):
     '''
         Provide streaming of processed tweets
     '''
@@ -207,12 +207,7 @@ def alert_messages(key, term, aggregation="1M", sentiment=None ):
 
     dataAgg = {"M": AGGREGATION.MINUTE,"H": AGGREGATION.HOUR, "D": AGGREGATION.DAY}
 
-    mlPipe = pipe.Pipeline (term)
 
-    #stop the tweet stream
-    twtStreamObj.stopEveryStream( )
-    #start the tweet stream
-    twtStreamObj.runEveryStream( )
 
     try:
         while User.verify_auth_token(token): #verify the user again
@@ -306,8 +301,14 @@ def messages(term):
 
     redis.expire (key, expireTime) 
 
+    mlPipe = pipe.Pipeline (term)
 
-    return Response( alert_messages(key, term), mimetype='text/event-stream' )
+    #stop the tweet stream
+    twtStreamObj.stopEveryStream( )
+    #start the tweet stream
+    twtStreamObj.runEveryStream( )
+
+    return Response( alert_messages(key, mlPipe, term), mimetype='text/event-stream' )
 
 
 @app.route(version + '/alerts/<term>/<aggregation>')
@@ -324,7 +325,14 @@ def messages_view(term, aggregation):
 
     redis.expire (key, expireTime) 
 
-    return Response( alert_messages(key, term, aggregation), mimetype='text/event-stream' )
+    mlPipe = pipe.Pipeline (term)
+
+    #stop the tweet stream
+    twtStreamObj.stopEveryStream( )
+    #start the tweet stream
+    twtStreamObj.runEveryStream( )
+
+    return Response( alert_messages(key, mlPipe, term, aggregation), mimetype='text/event-stream' )
 
 
 @app.route(version + '/alerts/<term>/<aggregation>/<sentiment>')
@@ -341,7 +349,14 @@ def messages_view2(term, aggregation, sentiment):
 
     redis.expire (key, expireTime) 
 
-    return Response( alert_messages(key, term, aggregation, sentiment), mimetype='text/event-stream' )
+    mlPipe = pipe.Pipeline (term)
+
+    #stop the tweet stream
+    twtStreamObj.stopEveryStream( )
+    #start the tweet stream
+    twtStreamObj.runEveryStream( )
+
+    return Response( alert_messages(key, mlPipe, term, aggregation, sentiment), mimetype='text/event-stream' )
 
 ###############################################################
 ###################     ending of stream    ###################

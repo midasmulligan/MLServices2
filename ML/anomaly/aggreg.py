@@ -18,8 +18,8 @@ class TimeAggregation:
 
     def setdata (self, ndf):
         self.ndf = ndf
-        self.ndf.timestamp = pd.to_datetime(self.ndf.timestamp, unit ='s')
-        self.ndf = self.ndf.set_index('timestamp')
+        #self.ndf.timestamp = pd.to_datetime(self.ndf.timestamp, unit ='s')
+        #self.ndf = self.ndf.set_index('timestamp')
 
 
     def aggregInMinutes (self, interval=1):
@@ -90,6 +90,8 @@ class TimeAggregation:
 
 
 if __name__ == "__main__":  
+    
+    """
     file = open('data.json', 'r')
 
     json_str = file.read()
@@ -98,9 +100,13 @@ if __name__ == "__main__":
 
     ndf = df [1:]
 
-    #ndf.timestamp = pd.to_datetime(ndf.timestamp, unit ='s')
+    ndf.timestamp = pd.to_datetime(ndf.timestamp, unit ='s')
 
-    #ndf = ndf.set_index('timestamp')
+    ndf = ndf.set_index('timestamp')
+
+    print "################################\n"
+    print ndf
+    print "################################\n"
 
     tAggObj = TimeAggregation()
     tAggObj.setdata (ndf)
@@ -111,7 +117,7 @@ if __name__ == "__main__":
     print "Time series ( values )"
     print objVal[0].values
 
-    """
+
     print "Time series ( values )"
     print objVal[0].index[0]
     print objVal[0].index[1]
@@ -124,7 +130,38 @@ if __name__ == "__main__":
     objVal = tAggObj.aggregInDays ( )
     print "Time series in days"
     print objVal[0]
+
+
     """
+
+    from datastore import DataStore
+
+    ds =  DataStore()
+    df= ds.getDF( "brexit", 1486083570, 1486083570 + (3 * 3600) )
+
+    df.index = pd.to_datetime( df.timestamp, unit ='s' )
+
+
+
+    tAggObj = TimeAggregation()
+    tAggObj.setdata (df)
+
+    objVal = tAggObj.aggregInMinutes (  )
+    print "Time series in minutes"
+    print objVal[0]
+    print "Time series ( values )"
+    print objVal[0].values
+
+
+    objVal = tAggObj.aggregInHours ( )
+    print "Time series in hours"
+    print objVal[0]
+
+
+    objVal = tAggObj.aggregInDays ( )
+    print "Time series in days"
+    print objVal[0]
+
 
 
 

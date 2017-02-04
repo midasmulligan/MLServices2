@@ -78,6 +78,7 @@ class StdOutListener(StreamListener):
 
 
     def on_data(self, data):
+    #def on_status(self, data):
 
         if (time.time() - self.start) < self.interval:
             try:
@@ -203,7 +204,7 @@ class TweetStream:
                 self.ds.createTable( term )
 
 
-        l = StdOutListener(  time_interval=interval )
+        l = StdOutListener( time_interval=interval )
         auth = OAuthHandler(consumer_key, consumer_secret)
         auth.set_access_token(access_token, access_token_secret)
 
@@ -211,7 +212,7 @@ class TweetStream:
 
 
         self.stream = Stream(api.auth, l)
-        self.stream.filter(track=listOfTerms, languages=['en'], async=True)
+        self.stream.filter(track=listOfTerms, languages=['en'], async=True, stall_warnings=True)
             
 
 
@@ -238,7 +239,6 @@ class TweetStream:
         
 
     def stopEveryStream(self):
-        listOfTerms = self.getlist ( )
         if self.stream:
             self.stream.disconnect() #disconnect the stream and stop streaming
 
@@ -252,6 +252,7 @@ if __name__ == '__main__':
     #twtStreamObj.runEveryStream( )
     twtStreamObj.stopandRemoveStream( "trump")
     twtStreamObj.stopandRemoveStream( "clinton")
+    twtStreamObj.stopandRemoveStream( "brexit")
     print twtStreamObj.getlist (  )
 
 

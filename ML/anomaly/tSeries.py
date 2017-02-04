@@ -1,6 +1,6 @@
 from timeSeries import TimeSeriesPrediction
 import pandas as pd
-
+from trigger import TriggerAlerts
 
 class AGGREGATION:
     MINUTE = 1
@@ -12,13 +12,18 @@ class PredictedFutureTriggerAlerts:
 
 
     def __init__ ( self, term=None ):
-        from trigger import TriggerAlerts
+        
         self.state = AGGREGATION.MINUTE
+
+        self.setAggregation ( self.state )
 
         if term:
             self.tAlertObj = TriggerAlerts(term )
         else:
             self.tAlertObj = TriggerAlerts( )
+
+
+
 
 
     def setData (self, ndf):
@@ -98,14 +103,20 @@ class PredictedFutureTriggerAlerts:
         ndata = None
 
         if self.state == AGGREGATION.MINUTE:
+            print "minute\n"
             ndata = self.useMinutes ( interval = interval )
 
         elif self.state == AGGREGATION.HOUR:
+            print "hour\n"
             ndata = self.useHours( interval = interval )
 
         else:
+            print "day\n"
             #self.state = AGGREGATION.DAY
             ndata = self.useDays( interval = interval )
+
+
+        #
 
 
         data = pd.DataFrame(
@@ -115,7 +126,10 @@ class PredictedFutureTriggerAlerts:
             }
         )
 
+
+
         data.index = data['timestamp'].values
+
 
         tsData = TimeSeriesPrediction(data, p, q)
         tsData.update(data, p, q)
@@ -124,8 +138,11 @@ class PredictedFutureTriggerAlerts:
         return predTimeSeriesData.index.tolist()
 
 
+
+
 if __name__ == "__main__":
 
+    '''
     file = open('data.json', 'r')
     json_str = file.read()
     df = pd.read_json(json_str)
@@ -141,5 +158,27 @@ if __name__ == "__main__":
     print "========================================\n"
 
     print tsaObj.simulatedPredict () #testing mode
+    '''
+
+
+    from datastore import DataStore
+
+    ds =  DataStore()
+    df= ds.getDF( "trump", 1486083488, 1486167449 )
+
+    df.index = pd.to_datetime( df.timestamp, unit ='s' )
+
+
+
+
+    tsaObj = PredictedFutureTriggerAlerts( "trumph" )
+    tsaObj.setData (df)
+
+    print "========================================\n"
+    print tsaObj.useMinutes (interval = 1) #training mode
+    print "========================================\n"
+
+    print tsaObj.simulatedPredict () #testing mode
+
 
 
