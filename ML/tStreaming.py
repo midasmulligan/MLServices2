@@ -9,7 +9,7 @@ from tweepy import OAuthHandler, Stream, API
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from datastore import DataStore
 
-
+from httplib import IncompleteRead # Python 2
 
 from redis import StrictRedis
 
@@ -84,31 +84,33 @@ class StdOutListener(StreamListener):
             try:
                 data = json.loads(data)
 
-                tweetText = processTweet( data['text'] )
-                tweetTimestamp_ms = int (data['timestamp_ms'])
-                tweetRetweetCount = data['retweet_count']
-                tweetAuthorID = data['user']['id']
-                tweetAuthorFollowerCount = data['user']['followers_count']
-                tweetID = int (data['id'])
+                if data["lang"] == 'en':
 
-                timestamp = round ( tweetTimestamp_ms / 1000 )
+                    tweetText = processTweet( data['text'] )
+                    tweetTimestamp_ms = int (data['timestamp_ms'])
+                    tweetRetweetCount = data['retweet_count']
+                    tweetAuthorID = data['user']['id']
+                    tweetAuthorFollowerCount = data['user']['followers_count']
+                    tweetID = int (data['id'])
 
-                #add element to table
-                #randomly create sentiments
-                sentimentList = ['pos', 'neg', 'neu']
-                sentiment = random.choice(sentimentList)
+                    timestamp = round ( tweetTimestamp_ms / 1000 )
 
-                termlist = self.getlabel( tweetText )
+                    #add element to table
+                    #randomly create sentiments
+                    sentimentList = ['pos', 'neg', 'neu']
+                    sentiment = random.choice(sentimentList)
+
+                    termlist = self.getlabel( tweetText )
 
 
-                for term in termlist:
-                    #table is created
-                    if not self.ds.table_exists( term):
-                        #create table
-                        self.ds.createTable( term )
+                    for term in termlist:
+                        #table is created
+                        if not self.ds.table_exists( term):
+                            #create table
+                            self.ds.createTable( term )
 
-                    #add row to table
-                    self.ds.addRowToTable( term, tweetID, tweetText, timestamp, sentiment )
+                        #add row to table
+                        self.ds.addRowToTable( term, tweetID, tweetText, timestamp, sentiment )
 
             except:
                 pass
@@ -192,7 +194,8 @@ class TweetStream:
             begin every terms
         '''
         
-        interval = 10*60 # time interval in seconds
+        #interval = 10*60 # time interval in seconds
+        interval = 60
   
         listOfTerms = self.getlist ( )
 
@@ -211,10 +214,22 @@ class TweetStream:
         api = API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 
-        self.stream = Stream(api.auth, l)
-        self.stream.filter(track=listOfTerms, languages=['en'], async=True, stall_warnings=True)
-            
 
+
+        try:
+            self.stream = Stream(api.auth, l)
+            if listOfTerms:
+                #self.stream.filter(track=listOfTerms, languages=['en'], async=True, stall_warnings=True)
+                #self.stream.filter( track=listOfTerms, languages=['en'], async=True )
+                self.stream.filter( track=listOfTerms, async=True )
+
+        except IncompleteRead:
+            # Oh well, reconnect and keep trucking
+            pass
+        except KeyboardInterrupt:
+            # Or however you want to exit this loop
+            self.stream.disconnect()
+            
 
 
     def stopandRemoveStream(self, term):

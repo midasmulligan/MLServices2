@@ -230,6 +230,8 @@ def alert_messages( key, mlPipe, term, aggregation="1M", sentiment=None ):
 
                 yield str(data)+"\n"
 
+                #yield str(startTimeStamp)+"-"+ str(endTimeStamp) + "\n"
+
                 token =  userObj.generate_auth_token(one_hour)
 
             elif (count % HOUR) == 0 and aggreg=="H":
