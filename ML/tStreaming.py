@@ -13,6 +13,7 @@ from httplib import IncompleteRead # Python 2
 
 from redis import StrictRedis
 
+import Queue
 
 import random
 
@@ -40,7 +41,8 @@ class StdOutListener(StreamListener):
         self.start = time.time()
 
         self.ds = DataStore ()
-
+        #self.q = Queue.PriorityQueue(maxsize=10000)
+        self.q = []
 
 
 
@@ -78,40 +80,36 @@ class StdOutListener(StreamListener):
 
 
     def on_data(self, data):
-    #def on_status(self, data):
-
+        count = 0
         if (time.time() - self.start) < self.interval:
             try:
                 data = json.loads(data)
 
-                if data["lang"] == 'en':
+                tweetText = self.processTweet( data['text'] )
+                tweetTimestamp_ms = int (data['timestamp_ms'])
+                tweetRetweetCount = data['retweet_count']
+                tweetAuthorID = data['user']['id']
+                tweetAuthorFollowerCount = data['user']['followers_count']
+                tweetID = int (data['id'])
 
-                    tweetText = processTweet( data['text'] )
-                    tweetTimestamp_ms = int (data['timestamp_ms'])
-                    tweetRetweetCount = data['retweet_count']
-                    tweetAuthorID = data['user']['id']
-                    tweetAuthorFollowerCount = data['user']['followers_count']
-                    tweetID = int (data['id'])
+                timestamp = round ( tweetTimestamp_ms / 1000 )
 
-                    timestamp = round ( tweetTimestamp_ms / 1000 )
+                #add element to table
+                #randomly create sentiments
+                sentimentList = ['pos', 'neg', 'neu']
+                sentiment = random.choice(sentimentList)
 
-                    #add element to table
-                    #randomly create sentiments
-                    sentimentList = ['pos', 'neg', 'neu']
-                    sentiment = random.choice(sentimentList)
-
-                    termlist = self.getlabel( tweetText )
+                termlist = self.getlabel( tweetText )
 
 
-                    for term in termlist:
-                        #table is created
-                        if not self.ds.table_exists( term):
-                            #create table
-                            self.ds.createTable( term )
+                for term in termlist:
+                    #table is created
+                    if not self.ds.table_exists( term):
+                        #create table
+                        self.ds.createTable( term )
 
-                        #add row to table
-                        self.ds.addRowToTable( term, tweetID, tweetText, timestamp, sentiment )
-
+                    #add row to table
+                    self.ds.addRowToTable( term, tweetID, tweetText, timestamp, sentiment )
             except:
                 pass
 
@@ -137,24 +135,25 @@ class StdOutListener(StreamListener):
             self.nightnight += 1
         return True
 
+    def processTweet(self, tweet):
+
+        # Remove special characters
+        tweet = tweet.encode('ascii', 'ignore')
+        # Convert www.* or https?://* to URL
+        tweet = re.sub('((www\.[^\s]+)|(https?://[^\s]+))','URL',tweet)
+        # Convert @username to AT_USER
+        tweet = re.sub('@[^\s]+','AT_USER',tweet)
+        # Remove additional white spaces
+        tweet = re.sub('[\s]+', ' ', tweet)
+        # Replace #word with word
+        tweet = re.sub(r'#([^\s]+)', r'\1', tweet)
+        # Trim
+        tweet = tweet.strip('\'"')
+
+        return tweet
 
 
-def processTweet(tweet):
 
-    # Remove special characters
-    tweet = tweet.encode('ascii', 'ignore')
-    # Convert www.* or https?://* to URL
-    tweet = re.sub('((www\.[^\s]+)|(https?://[^\s]+))','URL',tweet)
-    # Convert @username to AT_USER
-    tweet = re.sub('@[^\s]+','AT_USER',tweet)
-    # Remove additional white spaces
-    tweet = re.sub('[\s]+', ' ', tweet)
-    # Replace #word with word
-    tweet = re.sub(r'#([^\s]+)', r'\1', tweet)
-    # Trim
-    tweet = tweet.strip('\'"')
-
-    return tweet
 
 
 
@@ -214,21 +213,20 @@ class TweetStream:
         api = API(auth, wait_on_rate_limit=True, wait_on_rate_limit_notify=True)
 
 
-
-
         try:
             self.stream = Stream(api.auth, l)
             if listOfTerms:
-                #self.stream.filter(track=listOfTerms, languages=['en'], async=True, stall_warnings=True)
-                #self.stream.filter( track=listOfTerms, languages=['en'], async=True )
-                self.stream.filter( track=listOfTerms, async=True )
-
+                self.stream.filter( track=listOfTerms, languages=['en'], async=True )
         except IncompleteRead:
             # Oh well, reconnect and keep trucking
             pass
         except KeyboardInterrupt:
             # Or however you want to exit this loop
             self.stream.disconnect()
+
+
+
+
             
 
 
@@ -249,9 +247,11 @@ class TweetStream:
 
 
         #remove table 
+
         if self.ds.table_exists( term ):
-            self.ds.removeTable( term )        
-        
+            self.ds.removeTable( term )   
+  
+        #self.ds.removeTable( term )         
 
     def stopEveryStream(self):
         if self.stream:
@@ -268,6 +268,9 @@ if __name__ == '__main__':
     twtStreamObj.stopandRemoveStream( "trump")
     twtStreamObj.stopandRemoveStream( "clinton")
     twtStreamObj.stopandRemoveStream( "brexit")
+    twtStreamObj.stopandRemoveStream( "james")
+    twtStreamObj.stopandRemoveStream( "kenneth")
+    twtStreamObj.stopandRemoveStream( "users")
     print twtStreamObj.getlist (  )
 
 

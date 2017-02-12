@@ -41,7 +41,7 @@ class DataStore ():
             create new table
         '''
 
-        query = " CREATE TABLE IF NOT EXISTS "+ term + " ( id SERIAL, tweetid bigint NOT NULL, text varchar(500) NOT NULL, timestamp bigint NOT NULL, sentiment varchar(3)  );"
+        query = " CREATE TABLE IF NOT EXISTS "+ term + " ( id SERIAL, tweetid bigint NOT NULL, text varchar(500) NOT NULL, timestamp bigint NOT NULL, sentiment varchar(3)  );" 
 
         self.cur.execute(query)
 
@@ -72,13 +72,21 @@ class DataStore ():
         '''
             add row to table
         '''
+
         if sentiment is None:
             self.cur.execute("INSERT INTO "+term+" (tweetid, text, timestamp) VALUES (%s,%s,%s)",  ( tweetid, text, timestamp) )
 
         else:
             self.cur.execute("INSERT INTO "+term+" (tweetid, text, timestamp, sentiment) VALUES (%s,%s,%s,%s)",  ( tweetid, text, timestamp, sentiment) )
 
+
+
+
         #print "New row added in the Table :" + term 
+
+    #delete old data from the table to free up space
+    #query = "DELETE FROM "+ term + " where timestamp < now() - interval '365 days'" 
+    #self.cur.execute( query )
 
 
     def getEveryRow( self, term ):
@@ -109,19 +117,6 @@ class DataStore ():
 
         df = read_sql(query, con=self.conn, columns=[ "text", "timestamp" ]) 
 
-        #df = read_sql(query, con=self.conn ) 
-        '''
-        output = []
-
-
-        for index, row in df.iterrows():
-            curr = { "text": row['text'], "timestamp": row['timestamp'] }
-            output.append ( curr )
-
-
-
-        ndf = pd.DataFrame (output)
-        '''
         return df
 
 
@@ -174,7 +169,7 @@ class DataStore ():
 if __name__ == "__main__":
     dsObj = DataStore ()
 
-    """
+
     #term = "kenneth"
     term = "james"
     dsObj.removeTable( term )
@@ -184,6 +179,8 @@ if __name__ == "__main__":
 
 
     dsObj.addRowToTable( term, 177384834569, "Please am coming home", 45332228, 'pos' )
+    dsObj.addRowToTable( term, 177384838297, "Please am seeing him", 45332229916, 'neg' )
+    dsObj.addRowToTable( term, 177384838297, "Please am seeing him", 45332229916, 'neg' )
     dsObj.addRowToTable( term, 177384838297, "Please am seeing him", 45332229916, 'neg' )
     print dsObj.getEveryRow( term )
     print "======================================="
@@ -201,4 +198,5 @@ if __name__ == "__main__":
 
     term = "clinton"
     print dsObj.checkIfTableIsInsertingData( term )
+    """
 
