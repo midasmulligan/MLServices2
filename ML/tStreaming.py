@@ -17,7 +17,7 @@ import Queue
 
 import random
 
-
+from textblob import TextBlob
 
 redis = StrictRedis(host='localhost', port=6379, db=0)
 
@@ -94,10 +94,16 @@ class StdOutListener(StreamListener):
 
                 timestamp = round ( tweetTimestamp_ms / 1000 )
 
-                #add element to table
-                #randomly create sentiments
-                sentimentList = ['pos', 'neg', 'neu']
-                sentiment = random.choice(sentimentList)
+
+                twt = TextBlob(tweetText)
+
+                sentiment = ""
+                if twt.sentiment.polarity < 0:
+                    sentiment = "neg"
+                elif twt.sentiment.polarity == 0:
+                    sentiment = "neu"
+                else:
+                    sentiment = "pos"
 
                 termlist = self.getlabel( tweetText )
 
