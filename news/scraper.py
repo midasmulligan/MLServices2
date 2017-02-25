@@ -1,11 +1,19 @@
+import sys  
+
+reload(sys)  
+sys.setdefaultencoding('utf8')
+import pandas as pd
+
 import requests
 import lxml
 from lxml import html
 import json
 
+from cStringIO import StringIO
 
-apiKey="b5cb4418725248dab9b0874911ebb69e"
-sourceURL = "https://newsapi.org/v1/sources"
+
+apiKey     = "b5cb4418725248dab9b0874911ebb69e"
+sourceURL  = "https://newsapi.org/v1/sources"
 articleURL = "https://newsapi.org/v1/articles"
 
 
@@ -17,7 +25,7 @@ def getNews (language = "en", apiKey=apiKey, category = None ):
 
         language can be en, de, fr
     """
-    output = []
+    buf = StringIO()
     payload = {'language': language, 'apiKey': apiKey}
 
     if category:
@@ -38,15 +46,27 @@ def getNews (language = "en", apiKey=apiKey, category = None ):
         articleObjList = downloadContentObjlist["articles"]
 
         for articleObj in articleObjList:
-            output.append ( articleObj["description"] ) 
+            buf.write( str(articleObj["description"]).lower() + " " )
 
-    return output
+    return buf.getvalue()
+
+
+def getLabeledData ():
+
+    cols = tuple(['label', 'message'])
+    df = pd.DataFrame(columns=cols)
+
+    dataList = []
+    labels  = ["business", "entertainment", "gaming", "general", "music", "science-and-nature", "sport", "technology"]
+  
+
+
+    for i in range(len (labels)):
+        df.loc[i] = [labels[i], getNews ( category = labels[i] )]
+
+    df.to_csv("topicCollection.csv", header=True, index=False)
 
 
 if __name__ == '__main__':
-
-    categoryList = ["business", "entertainment", "gaming", "general", "music", "science-and-nature", "sport", "technology"]
-    for cat in categoryList:
-        print cat + " : " + str ( len (getNews ( category = cat )) )
-
+    getLabeledData ()
 

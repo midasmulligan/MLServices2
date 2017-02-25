@@ -64,8 +64,9 @@ copy_reg.pickle(types.MethodType, _pickle_method)
 
 #MESSAGES = pd.read_csv(dir_path+'data/topicCollection', names=["label", "message"])
 
-MESSAGES = pd.read_csv(dir_path+'data/topicCollection.csv')
-    
+#MESSAGES = pd.read_csv(dir_path+'data/topicCollection.csv')
+   
+MESSAGES = pd.read_csv(dir_path+'data/newsAPICollection.csv') 
 
 class TopicDetector:
     '''
